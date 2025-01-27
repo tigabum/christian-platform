@@ -3,9 +3,9 @@ import {
   View,
   Text,
   FlatList,
-  RefreshControl,
-  StyleSheet,
   TouchableOpacity,
+  StyleSheet,
+  TextInput,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -14,67 +14,107 @@ import {Question} from '../../types/question';
 import {RootStackParamList} from '../../navigation/AppNavigator';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-const navigation = useNavigation<NavigationProp>();
 
 const HomeScreen = () => {
+  const navigation = useNavigation<NavigationProp>();
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchQuestions();
+  }, [filter]);
 
   const fetchQuestions = async () => {
     try {
-      const response = await api.get('/questions/public');
+      setLoading(true);
+      const response = await api.get('/questions/my');
+      console.log('Fetched questions:', response.data.length); // Debug log
       setQuestions(response.data);
     } catch (error) {
       console.error('Error fetching questions:', error);
     } finally {
-      setRefreshing(false);
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchQuestions();
-  }, []);
+  const filterButtons = [
+    {id: 'all', label: 'All'},
+    {id: 'pending', label: 'Pending'},
+    {id: 'answered', label: 'Answered'},
+  ];
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchQuestions();
-  };
-
-  const handleAskQuestion = () => {
-    navigation.navigate('AskQuestion');
-  };
-
-  const renderQuestion = ({item}: {item: Question}) => (
-    <TouchableOpacity
-      style={styles.questionCard}
-      onPress={() => navigation.navigate('QuestionDetail', {id: item._id})}>
-      <Text style={styles.title}>{item.title}</Text>
-      <Text style={styles.content} numberOfLines={2}>
-        {item.content}
-      </Text>
-      <View style={styles.meta}>
-        <Text style={styles.asker}>
-          {item.isAnonymous ? 'Anonymous' : item.asker?.name}
-        </Text>
-        <Text style={styles.status}>{item.status}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const filteredQuestions = questions.filter(q => {
+    const matchesFilter = filter === 'all' || q.status === filter;
+    const matchesSearch =
+      q.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      q.content.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
 
   return (
     <View style={styles.container}>
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search questions..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          returnKeyType="search"
+          onSubmitEditing={fetchQuestions}
+        />
+      </View>
+
+      <View style={styles.filterContainer}>
+        {filterButtons.map(button => (
+          <TouchableOpacity
+            key={button.id}
+            style={[
+              styles.filterButton,
+              filter === button.id && styles.activeFilter,
+            ]}
+            onPress={() => setFilter(button.id)}>
+            <Text style={styles.filterText}>{button.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       <FlatList
-        data={questions}
-        renderItem={renderQuestion}
+        data={filteredQuestions}
+        renderItem={({item}) => (
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() =>
+              navigation.navigate('QuestionDetail', {id: item._id})
+            }>
+            <Text style={styles.title}>{item.title}</Text>
+            <Text style={styles.content} numberOfLines={2}>
+              {item.content}
+            </Text>
+            <View style={styles.meta}>
+              <Text style={styles.date}>
+                {new Date(item.createdAt).toLocaleDateString()}
+              </Text>
+              <Text style={styles.status}>{item.status}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
         keyExtractor={item => item._id}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshing={loading}
+        onRefresh={fetchQuestions}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No questions available</Text>
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
+              {loading ? 'Loading...' : 'No questions found'}
+            </Text>
+          </View>
         }
       />
-      <TouchableOpacity style={styles.fab} onPress={handleAskQuestion}>
+
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate('AskQuestion')}>
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
     </View>
@@ -86,10 +126,40 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  questionCard: {
+  searchContainer: {
+    padding: 10,
     backgroundColor: 'white',
-    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  searchInput: {
+    backgroundColor: '#f5f5f5',
+    padding: 10,
+    borderRadius: 8,
+    fontSize: 16,
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    padding: 10,
+    backgroundColor: 'white',
+  },
+  filterButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    marginHorizontal: 5,
+    borderRadius: 20,
+    backgroundColor: '#f0f0f0',
+  },
+  activeFilter: {
+    backgroundColor: '#007AFF',
+  },
+  filterText: {
+    color: '#333',
+  },
+  card: {
+    backgroundColor: 'white',
     margin: 10,
+    padding: 15,
     borderRadius: 10,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
@@ -110,21 +180,14 @@ const styles = StyleSheet.create({
   meta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
   },
-  asker: {
+  date: {
     fontSize: 12,
     color: '#999',
   },
   status: {
     fontSize: 12,
     color: '#007AFF',
-    textTransform: 'capitalize',
-  },
-  emptyText: {
-    textAlign: 'center',
-    marginTop: 20,
-    color: '#666',
   },
   fab: {
     position: 'absolute',
@@ -137,15 +200,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
   },
   fabText: {
     fontSize: 24,
     color: 'white',
-    fontWeight: 'bold',
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    color: '#666',
+    fontSize: 16,
   },
 });
 

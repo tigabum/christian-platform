@@ -13,13 +13,14 @@ router.post(
   auth,
   async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const { title, content, isPublic, isAnonymous } = req.body;
+      const { title, content, isPublic = true, isAnonymous = false } = req.body;
       const question = new Question({
         title,
         content,
         asker: req.user?.userId,
         isPublic,
         isAnonymous,
+        status: "pending",
       });
       await question.save();
       res.status(201).json(question);
@@ -43,18 +44,27 @@ router.get("/public", async (_req, res: Response): Promise<void> => {
   }
 });
 
-// Get user's questions
+// Get user's questions with search and filter
 router.get(
   "/my",
   auth,
   async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const questions = await Question.find({ asker: req.user?.userId })
+      const { search, status } = req.query;
+      let query: any = {}; // Remove asker filter temporarily
+
+      // Add status filter if provided and not 'all'
+      if (status && status !== "all") {
+        query.status = status;
+      }
+
+      const questions = await Question.find(query)
         .populate("responder", "name")
         .sort({ createdAt: -1 });
+
       res.json(questions);
     } catch (error) {
-      console.error("Error fetching user questions:", error);
+      console.error("Error fetching questions:", error);
       res.status(500).json({ message: "Server error" });
     }
   }
@@ -63,10 +73,8 @@ router.get(
 // Get question by ID
 router.get(
   "/:id",
-  async (
-    req: Request<ParamsDictionary, any, any, ParsedQs>,
-    res: Response
-  ): Promise<void> => {
+  auth,
+  async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const question = await Question.findById(req.params.id)
         .populate("asker", "name")
