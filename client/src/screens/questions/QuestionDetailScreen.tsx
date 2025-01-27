@@ -59,14 +59,17 @@ const QuestionDetailScreen = () => {
         <Text style={styles.title}>{question.title}</Text>
         <Text style={styles.content}>{question.content}</Text>
         <View style={styles.metaContainer}>
-          <Text style={styles.asker}>
-            Asked by: {question.isAnonymous ? 'Anonymous' : question.asker.name}
+          <Text style={styles.askerText}>
+            Asked by:{' '}
+            {question.isAnonymous
+              ? 'Anonymous'
+              : question.asker?.name || 'Unknown'}
           </Text>
           <Text style={styles.date}>
             {new Date(question.createdAt).toLocaleDateString()}
           </Text>
         </View>
-        <View style={[styles.statusContainer, styles[question.status]]}>
+        <View style={[styles.statusBadge, styles[question.status]]}>
           <Text style={styles.statusText}>{question.status}</Text>
         </View>
       </View>
@@ -134,7 +137,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 10,
   },
-  asker: {
+  askerText: {
     fontSize: 14,
     color: '#666',
   },
@@ -142,7 +145,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
-  statusContainer: {
+  statusBadge: {
     padding: 8,
     borderRadius: 5,
     alignSelf: 'flex-start',
