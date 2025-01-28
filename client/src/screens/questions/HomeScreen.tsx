@@ -23,7 +23,7 @@ const HomeScreen = () => {
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(false);
 
-  const filterButtons = [
+  const filterOptions = [
     {id: 'all', label: 'All'},
     {id: 'pending', label: 'Pending'},
     {id: 'assigned', label: 'Assigned'},
@@ -69,23 +69,21 @@ const HomeScreen = () => {
 
   const renderQuestion = ({item}: {item: Question}) => (
     <TouchableOpacity
-      style={styles.card}
+      style={styles.questionCard}
       onPress={() => navigation.navigate('QuestionDetail', {id: item._id})}>
-      <Text style={styles.title}>{item.title}</Text>
-      <Text style={styles.content} numberOfLines={2}>
+      <Text style={styles.questionTitle}>{item.title}</Text>
+      <Text style={styles.questionContent} numberOfLines={2}>
         {item.content}
       </Text>
-      <View style={styles.meta}>
-        <View style={styles.metaLeft}>
-          <Text style={styles.date}>
-            {new Date(item.createdAt).toLocaleDateString()}
+      <View style={styles.questionMeta}>
+        <Text style={styles.questionDate}>
+          {new Date(item.createdAt).toLocaleDateString()}
+        </Text>
+        {item.responder && (
+          <Text style={styles.assignedTo}>
+            Assigned to: {item.responder.name}
           </Text>
-          {item.responder && (
-            <Text style={styles.assignedTo}>
-              Assigned to: {item.responder.name}
-            </Text>
-          )}
-        </View>
+        )}
         <View
           style={[
             styles.statusBadge,
@@ -105,33 +103,31 @@ const HomeScreen = () => {
           placeholder="Search questions..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          onSubmitEditing={fetchQuestions}
-          returnKeyType="search"
+          placeholderTextColor="#999"
         />
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterContainer}>
-        {filterButtons.map(button => (
-          <TouchableOpacity
-            key={button.id}
-            style={[
-              styles.filterButton,
-              filter === button.id && styles.filterButtonActive,
-            ]}
-            onPress={() => setFilter(button.id)}>
-            <Text
+      <View style={styles.filterContainer}>
+        <View style={styles.filterRow}>
+          {filterOptions.map(option => (
+            <TouchableOpacity
+              key={option.id}
               style={[
-                styles.filterText,
-                filter === button.id && styles.filterTextActive,
-              ]}>
-              {button.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+                styles.filterButton,
+                filter === option.id && styles.filterButtonActive,
+              ]}
+              onPress={() => setFilter(option.id)}>
+              <Text
+                style={[
+                  styles.filterText,
+                  filter === option.id && styles.filterTextActive,
+                ]}>
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
 
       <FlatList
         data={questions}
@@ -161,76 +157,85 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
   },
   searchContainer: {
-    padding: 10,
-    backgroundColor: 'white',
+    padding: 16,
+    backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
   searchInput: {
     backgroundColor: '#f5f5f5',
-    padding: 10,
+    padding: 12,
     borderRadius: 8,
     fontSize: 16,
+    color: '#333',
   },
   filterContainer: {
-    backgroundColor: 'white',
-    paddingVertical: 10,
-    paddingHorizontal: 5,
+    backgroundColor: '#fff',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  filterRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   filterButton: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginHorizontal: 5,
-    borderRadius: 20,
+    paddingVertical: 6,
+    borderRadius: 16,
     backgroundColor: '#f0f0f0',
   },
   filterButtonActive: {
     backgroundColor: '#007AFF',
   },
   filterText: {
-    color: '#666',
     fontSize: 14,
+    color: '#666',
   },
   filterTextActive: {
-    color: 'white',
+    color: '#fff',
+    fontWeight: '500',
   },
   listContainer: {
-    padding: 10,
+    padding: 16,
   },
-  card: {
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
+  questionCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  title: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  questionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
     marginBottom: 8,
   },
-  content: {
-    fontSize: 14,
+  questionContent: {
+    fontSize: 16,
     color: '#666',
     marginBottom: 12,
+    lineHeight: 22,
   },
-  meta: {
+  questionMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  metaLeft: {
-    flex: 1,
-  },
-  date: {
-    fontSize: 12,
+  questionDate: {
+    fontSize: 14,
     color: '#999',
   },
   assignedTo: {
@@ -240,12 +245,13 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
   statusText: {
-    color: 'white',
-    fontSize: 12,
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
     textTransform: 'capitalize',
   },
   emptyContainer: {
@@ -274,8 +280,8 @@ const styles = StyleSheet.create({
   },
   fabText: {
     fontSize: 24,
-    color: 'white',
-    fontWeight: 'bold',
+    color: '#fff',
+    fontWeight: '600',
   },
 });
 
