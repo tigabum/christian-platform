@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
+  ScrollView,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -22,6 +23,14 @@ const HomeScreen = () => {
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(false);
 
+  const filterButtons = [
+    {id: 'all', label: 'All'},
+    {id: 'pending', label: 'Pending'},
+    {id: 'assigned', label: 'Assigned'},
+    {id: 'answered', label: 'Answered'},
+    {id: 'closed', label: 'Closed'},
+  ];
+
   useEffect(() => {
     fetchQuestions();
   }, [filter]);
@@ -29,7 +38,9 @@ const HomeScreen = () => {
   const fetchQuestions = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/questions/my');
+      const response = await api.get(
+        `/questions/my?status=${filter}&search=${searchQuery}`,
+      );
       console.log('Fetched questions:', response.data.length); // Debug log
       setQuestions(response.data);
     } catch (error) {
@@ -39,19 +50,52 @@ const HomeScreen = () => {
     }
   };
 
-  const filterButtons = [
-    {id: 'all', label: 'All'},
-    {id: 'pending', label: 'Pending'},
-    {id: 'answered', label: 'Answered'},
-  ];
+  const getStatusColor = (
+    status: 'pending' | 'assigned' | 'answered' | 'closed' | string,
+  ): string => {
+    switch (status) {
+      case 'pending':
+        return '#FFA500';
+      case 'assigned':
+        return '#32CD32';
+      case 'answered':
+        return '#007AFF';
+      case 'closed':
+        return '#666666';
+      default:
+        return '#999999';
+    }
+  };
 
-  const filteredQuestions = questions.filter(q => {
-    const matchesFilter = filter === 'all' || q.status === filter;
-    const matchesSearch =
-      q.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      q.content.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
+  const renderQuestion = ({item}: {item: Question}) => (
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => navigation.navigate('QuestionDetail', {id: item._id})}>
+      <Text style={styles.title}>{item.title}</Text>
+      <Text style={styles.content} numberOfLines={2}>
+        {item.content}
+      </Text>
+      <View style={styles.meta}>
+        <View style={styles.metaLeft}>
+          <Text style={styles.date}>
+            {new Date(item.createdAt).toLocaleDateString()}
+          </Text>
+          {item.responder && (
+            <Text style={styles.assignedTo}>
+              Assigned to: {item.responder.name}
+            </Text>
+          )}
+        </View>
+        <View
+          style={[
+            styles.statusBadge,
+            {backgroundColor: getStatusColor(item.status)},
+          ]}>
+          <Text style={styles.statusText}>{item.status}</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
@@ -61,48 +105,41 @@ const HomeScreen = () => {
           placeholder="Search questions..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          returnKeyType="search"
           onSubmitEditing={fetchQuestions}
+          returnKeyType="search"
         />
       </View>
 
-      <View style={styles.filterContainer}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterContainer}>
         {filterButtons.map(button => (
           <TouchableOpacity
             key={button.id}
             style={[
               styles.filterButton,
-              filter === button.id && styles.activeFilter,
+              filter === button.id && styles.filterButtonActive,
             ]}
             onPress={() => setFilter(button.id)}>
-            <Text style={styles.filterText}>{button.label}</Text>
+            <Text
+              style={[
+                styles.filterText,
+                filter === button.id && styles.filterTextActive,
+              ]}>
+              {button.label}
+            </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
 
       <FlatList
-        data={filteredQuestions}
-        renderItem={({item}) => (
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() =>
-              navigation.navigate('QuestionDetail', {id: item._id})
-            }>
-            <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.content} numberOfLines={2}>
-              {item.content}
-            </Text>
-            <View style={styles.meta}>
-              <Text style={styles.date}>
-                {new Date(item.createdAt).toLocaleDateString()}
-              </Text>
-              <Text style={styles.status}>{item.status}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
+        data={questions}
+        renderItem={renderQuestion}
         keyExtractor={item => item._id}
         refreshing={loading}
         onRefresh={fetchQuestions}
+        contentContainerStyle={styles.listContainer}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
@@ -139,28 +176,35 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   filterContainer: {
-    flexDirection: 'row',
-    padding: 10,
     backgroundColor: 'white',
+    paddingVertical: 10,
+    paddingHorizontal: 5,
   },
   filterButton: {
-    paddingHorizontal: 15,
+    paddingHorizontal: 16,
     paddingVertical: 8,
     marginHorizontal: 5,
     borderRadius: 20,
     backgroundColor: '#f0f0f0',
   },
-  activeFilter: {
+  filterButtonActive: {
     backgroundColor: '#007AFF',
   },
   filterText: {
-    color: '#333',
+    color: '#666',
+    fontSize: 14,
+  },
+  filterTextActive: {
+    color: 'white',
+  },
+  listContainer: {
+    padding: 10,
   },
   card: {
     backgroundColor: 'white',
-    margin: 10,
     padding: 15,
     borderRadius: 10,
+    marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
@@ -175,19 +219,42 @@ const styles = StyleSheet.create({
   content: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   meta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  metaLeft: {
+    flex: 1,
   },
   date: {
     fontSize: 12,
     color: '#999',
   },
-  status: {
+  assignedTo: {
     fontSize: 12,
-    color: '#007AFF',
+    color: '#666',
+    marginTop: 4,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    color: 'white',
+    fontSize: 12,
+    textTransform: 'capitalize',
+  },
+  emptyContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: '#666',
+    fontSize: 16,
   },
   fab: {
     position: 'absolute',
@@ -200,20 +267,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
   fabText: {
     fontSize: 24,
     color: 'white',
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  emptyText: {
-    color: '#666',
-    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

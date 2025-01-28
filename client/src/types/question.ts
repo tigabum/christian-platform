@@ -10,12 +10,14 @@ export interface Question {
     _id: string;
     name: string;
   };
-  status: 'pending' | 'accepted' | 'answered' | 'forwarded';
+  status: 'pending' | 'assigned' | 'answered' | 'closed';
   isPublic: boolean;
   isAnonymous: boolean;
   answer?: {
     content: string;
-    createdAt: Date;
+    createdAt: string;
   };
-  createdAt: Date;
+  createdAt: string;
+  assignedAt?: string;
+  answeredAt?: string;
 }
