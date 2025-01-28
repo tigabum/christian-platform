@@ -37,6 +37,23 @@ const QuestionDetailScreen = () => {
     }
   };
 
+  const getStatusColor = (
+    status: 'pending' | 'assigned' | 'answered' | 'closed' | string,
+  ): string => {
+    switch (status) {
+      case 'pending':
+        return '#FFA500';
+      case 'assigned':
+        return '#32CD32';
+      case 'answered':
+        return '#007AFF';
+      case 'closed':
+        return '#666666';
+      default:
+        return '#999999';
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -55,9 +72,10 @@ const QuestionDetailScreen = () => {
 
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.questionContainer}>
+      <View style={styles.card}>
         <Text style={styles.title}>{question.title}</Text>
         <Text style={styles.content}>{question.content}</Text>
+
         <View style={styles.metaContainer}>
           <Text style={styles.askerText}>
             Asked by:{' '}
@@ -69,23 +87,41 @@ const QuestionDetailScreen = () => {
             {new Date(question.createdAt).toLocaleDateString()}
           </Text>
         </View>
-        <View style={[styles.statusBadge, styles[question.status]]}>
+
+        <View
+          style={[
+            styles.statusBadge,
+            {backgroundColor: getStatusColor(question.status)},
+          ]}>
           <Text style={styles.statusText}>{question.status}</Text>
         </View>
-      </View>
 
-      {question.answer && (
-        <View style={styles.answerContainer}>
-          <Text style={styles.answerTitle}>Answer</Text>
-          <Text style={styles.answerContent}>{question.answer.content}</Text>
-          <Text style={styles.answerMeta}>
-            Answered by: {question.responder?.name}
-          </Text>
-          <Text style={styles.answerDate}>
-            {new Date(question.answer.createdAt).toLocaleDateString()}
-          </Text>
-        </View>
-      )}
+        {question.responder && (
+          <View style={styles.responderInfo}>
+            <Text style={styles.responderLabel}>Assigned to:</Text>
+            <Text style={styles.responderName}>{question.responder.name}</Text>
+            {question.assignedAt && (
+              <Text style={styles.assignedDate}>
+                Assigned on:{' '}
+                {new Date(question.assignedAt).toLocaleDateString()}
+              </Text>
+            )}
+          </View>
+        )}
+
+        {question.answer && (
+          <View style={styles.answerContainer}>
+            <Text style={styles.answerLabel}>Answer:</Text>
+            <Text style={styles.answerContent}>{question.answer.content}</Text>
+            <Text style={styles.answerDate}>
+              Answered on:{' '}
+              {question.answeredAt
+                ? new Date(question.answeredAt).toLocaleDateString()
+                : 'Not answered yet'}
+            </Text>
+          </View>
+        )}
+      </View>
     </ScrollView>
   );
 };
@@ -109,9 +145,9 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 16,
   },
-  questionContainer: {
+  card: {
     backgroundColor: 'white',
-    margin: 15,
+    margin: 10,
     padding: 15,
     borderRadius: 10,
     shadowColor: '#000',
@@ -124,18 +160,17 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
-    color: '#333',
   },
   content: {
     fontSize: 16,
-    color: '#444',
+    color: '#333',
     marginBottom: 15,
     lineHeight: 24,
   },
   metaContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 15,
   },
   askerText: {
     fontSize: 14,
@@ -146,59 +181,59 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   statusBadge: {
-    padding: 8,
-    borderRadius: 5,
     alignSelf: 'flex-start',
-    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginBottom: 15,
   },
   statusText: {
     color: 'white',
     fontSize: 14,
     textTransform: 'capitalize',
   },
-  pending: {
-    backgroundColor: '#FFA500',
+  responderInfo: {
+    backgroundColor: '#f8f9fa',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 10,
   },
-  accepted: {
-    backgroundColor: '#32CD32',
+  responderLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
   },
-  answered: {
-    backgroundColor: '#007AFF',
+  responderName: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
   },
-  forwarded: {
-    backgroundColor: '#8A2BE2',
+  assignedDate: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
   },
   answerContainer: {
-    backgroundColor: '#E8F4FF',
-    margin: 15,
+    backgroundColor: '#e8f4ff',
     padding: 15,
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderRadius: 8,
+    marginTop: 15,
   },
-  answerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
+  answerLabel: {
+    fontSize: 16,
+    fontWeight: '600',
     color: '#007AFF',
+    marginBottom: 8,
   },
   answerContent: {
     fontSize: 16,
-    color: '#444',
-    marginBottom: 15,
+    color: '#333',
     lineHeight: 24,
   },
-  answerMeta: {
-    fontSize: 14,
-    color: '#666',
-  },
   answerDate: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#666',
-    marginTop: 5,
+    marginTop: 8,
   },
 });
 
