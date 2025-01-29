@@ -93,4 +93,70 @@ router.get(
   }
 );
 
+// Get responder's questions
+router.get(
+  "/responder",
+  auth,
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const { status } = req.query;
+      let query: any = {
+        $or: [
+          { responder: req.user?.userId }, // Questions assigned to this responder
+          {
+            status: "pending", // Or pending questions that need a responder
+            responder: { $exists: false },
+          },
+        ],
+      };
+
+      if (status && status !== "all") {
+        query.status = status;
+      }
+
+      const questions = await Question.find(query)
+        .populate("asker", "name")
+        .sort({ createdAt: -1 });
+
+      res.json(questions);
+    } catch (error) {
+      console.error("Error fetching responder questions:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+
+// Add new route specifically for responders
+router.get(
+  "/responder/questions", // New separate endpoint for responders
+  auth,
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const { status } = req.query;
+      let query: any = {
+        $or: [
+          { responder: req.user?.userId }, // Questions assigned to this responder
+          {
+            status: "pending", // Or pending questions that need a responder
+            responder: { $exists: false },
+          },
+        ],
+      };
+
+      if (status && status !== "all") {
+        query.status = status;
+      }
+
+      const questions = await Question.find(query)
+        .populate("asker", "name")
+        .sort({ createdAt: -1 });
+
+      res.json(questions);
+    } catch (error) {
+      console.error("Error fetching responder questions:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+
 export default router;
