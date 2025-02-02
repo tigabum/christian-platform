@@ -4,9 +4,10 @@ export interface IUser extends Document {
   name: string;
   email: string;
   password: string;
-  role: "asker" | "responder";
+  role: "asker" | "responder" | "admin";
   isPublic: boolean;
   createdAt: Date;
+  expertise: string[];
 }
 
 const userSchema = new mongoose.Schema({
@@ -26,8 +27,8 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ["asker", "responder"],
-    default: "asker",
+    enum: ["user", "responder", "admin"],
+    default: "user",
   },
   isPublic: {
     type: Boolean,
@@ -37,6 +38,19 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  expertise: [
+    {
+      type: String,
+      enum: [
+        "Technology",
+        "Health",
+        "Education",
+        "Business",
+        "Lifestyle",
+        // Add more categories as needed
+      ],
+    },
+  ],
 });
 
 export default mongoose.model<IUser>("User", userSchema);

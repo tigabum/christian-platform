@@ -3,6 +3,7 @@ import { auth } from "../middleware/auth";
 import Question from "../models/Question";
 import { AuthRequest } from "../middleware/auth";
 import mongoose from "mongoose";
+import User from "../models/User";
 
 const router = express.Router();
 
@@ -14,23 +15,23 @@ router.get(
     try {
       const { status } = req.query;
       let query: any = {
-        $or: [
-          { responder: req.user?.userId }, // Questions assigned to this responder
-          {
-            status: "pending", // Or pending questions that need a responder
-            responder: { $exists: false },
-          },
-        ],
+        responder: new mongoose.Types.ObjectId(req.user?.userId),
       };
 
+      // Only add status to query if it's not "all"
       if (status && status !== "all") {
-        query.status = status;
+        // If status is "pending", we should look for "assigned" status
+        query.status = status === "pending" ? "assigned" : status;
       }
+
+      console.log("Responder ID:", req.user?.userId);
+      console.log("Query:", query);
 
       const questions = await Question.find(query)
         .populate("asker", "name")
         .sort({ createdAt: -1 });
 
+      console.log("Found questions:", questions.length);
       res.json(questions);
     } catch (error) {
       console.error("Error fetching responder questions:", error);
