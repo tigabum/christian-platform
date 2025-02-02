@@ -6,6 +6,7 @@ import connectDB from "./config/db";
 import authRoutes from "./routes/auth";
 import questionRoutes from "./routes/questions";
 import userRoutes from "./routes/users";
+import responderRoutes from "./routes/responder";
 
 dotenv.config();
 
@@ -19,6 +20,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/questions", questionRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/responder", responderRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hello World");
