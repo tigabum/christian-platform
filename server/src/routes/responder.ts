@@ -24,14 +24,26 @@ router.get(
         query.status = status === "pending" ? "assigned" : status;
       }
 
-      console.log("Responder ID:", req.user?.userId);
-      console.log("Query:", query);
+      console.log("Fetching questions with:", {
+        userId: req.user?.userId,
+        status: status,
+        query: query,
+      });
 
       const questions = await Question.find(query)
         .populate("asker", "name")
         .sort({ createdAt: -1 });
 
-      console.log("Found questions:", questions.length);
+      console.log("Found questions:", {
+        count: questions.length,
+        questions: questions.map((q) => ({
+          id: q._id,
+          title: q.title,
+          status: q.status,
+          responder: q.responder,
+        })),
+      });
+
       res.json(questions);
     } catch (error) {
       console.error("Error fetching responder questions:", error);
@@ -114,6 +126,36 @@ router.post(
       res.json(question);
     } catch (error) {
       console.error("Error submitting answer:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+
+// Get responder profile stats
+router.get(
+  "/profile/stats",
+  auth,
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const totalAnswered = await Question.countDocuments({
+        responder: req.user?.userId,
+        status: "answered",
+      });
+
+      const activeQuestions = await Question.countDocuments({
+        responder: req.user?.userId,
+        status: "assigned",
+      });
+
+      // You can add more stats as needed
+      const stats = {
+        totalAnswered,
+        activeQuestions,
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching profile stats:", error);
       res.status(500).json({ message: "Server error" });
     }
   }
