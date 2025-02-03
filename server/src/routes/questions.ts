@@ -4,6 +4,8 @@ import { auth } from "../middleware/auth";
 import Question from "../models/Question";
 import { ParamsDictionary } from "express-serve-static-core";
 import { ParsedQs } from "qs";
+import User from "../models/User";
+import mongoose from "mongoose";
 
 const router = express.Router();
 
@@ -154,6 +156,53 @@ router.get(
       res.json(questions);
     } catch (error) {
       console.error("Error fetching responder questions:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+
+// Assign question to responder
+router.patch(
+  "/:id/assign",
+  auth,
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const { responderId } = req.body;
+
+      console.log("Assigning question:", {
+        questionId: req.params.id,
+        responderId: responderId,
+      });
+
+      const question = await Question.findById(req.params.id);
+
+      if (!question) {
+        res.status(404).json({ message: "Question not found" });
+        return;
+      }
+
+      // Verify the responder exists and is a responder
+      const responder = await User.findOne({
+        _id: responderId,
+        role: "responder",
+      });
+
+      if (!responder) {
+        res.status(400).json({ message: "Invalid responder" });
+        return;
+      }
+
+      question.responder = new mongoose.Types.ObjectId(responderId);
+      question.status = "assigned";
+      question.assignedAt = new Date();
+
+      await question.save();
+
+      console.log("Question assigned successfully:", question);
+
+      res.json(question);
+    } catch (error) {
+      console.error("Error assigning question:", error);
       res.status(500).json({ message: "Server error" });
     }
   }
