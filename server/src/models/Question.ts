@@ -5,7 +5,7 @@ export interface IQuestion extends Document {
   content: string;
   asker: mongoose.Types.ObjectId;
   responder?: mongoose.Types.ObjectId;
-  status: "pending" | "assigned" | "answered" | "closed";
+  status: "pending" | "assigned" | "inProgress" | "answered" | "closed";
   isPublic: boolean;
   isAnonymous: boolean;
   answer?: {
@@ -38,7 +38,7 @@ const questionSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "assigned", "answered", "closed"],
+      enum: ["pending", "assigned", "inProgress", "answered", "closed"],
       default: "pending",
     },
     isPublic: {

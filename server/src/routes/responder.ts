@@ -18,31 +18,27 @@ router.get(
         responder: new mongoose.Types.ObjectId(req.user?.userId),
       };
 
-      // Only add status to query if it's not "all"
+      // Update the status mapping
       if (status && status !== "all") {
-        // If status is "pending", we should look for "assigned" status
-        query.status = status === "pending" ? "assigned" : status;
+        // Show assigned questions in "Pending" tab
+        if (status === "pending") {
+          query.status = "assigned";
+        }
+        // Show "in progress" questions in "In Progress" tab
+        else if (status === "assigned") {
+          query.status = "inProgress";
+        }
+        // Keep "answered" as is
+        else {
+          query.status = status;
+        }
       }
 
-      console.log("Fetching questions with:", {
-        userId: req.user?.userId,
-        status: status,
-        query: query,
-      });
+      console.log("Query:", query);
 
       const questions = await Question.find(query)
         .populate("asker", "name")
         .sort({ createdAt: -1 });
-
-      console.log("Found questions:", {
-        count: questions.length,
-        questions: questions.map((q) => ({
-          id: q._id,
-          title: q.title,
-          status: q.status,
-          responder: q.responder,
-        })),
-      });
 
       res.json(questions);
     } catch (error) {

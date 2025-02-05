@@ -53,12 +53,22 @@ router.get(
   async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const { search, status } = req.query;
-      let query: any = {}; // Remove asker filter temporarily
+      let query: any = {
+        asker: req.user?.userId,
+      }; // Remove asker filter temporarily
 
       // Add status filter if provided and not 'all'
       if (status && status !== "all") {
         query.status = status;
       }
+
+      if (search && typeof search === "string" && search.trim()) {
+        const searchRegex = new RegExp(search.trim(), "i");
+
+        query.$or = [{ title: searchRegex }, { content: searchRegex }];
+      }
+
+      console.log("Search query:", query);
 
       const questions = await Question.find(query)
         .populate("responder", "name")
