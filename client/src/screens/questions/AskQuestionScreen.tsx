@@ -44,15 +44,24 @@ const AskQuestionScreen = () => {
 
     try {
       setLoading(true);
-      await api.post('/questions', {
+
+      // First create the question
+      const questionResponse = await api.post('/questions', {
         title: title.trim(),
         content: content.trim(),
         isAnonymous,
-        responderId: selectedResponderId || undefined,
       });
+
+      // If a responder was selected, assign the question
+      if (selectedResponderId) {
+        await api.patch(`/questions/${questionResponse.data._id}/assign`, {
+          responderId: selectedResponderId,
+        });
+      }
+
       navigation.goBack();
     } catch (error) {
-      console.error('Error creating question:', error);
+      console.error('Error creating/assigning question:', error);
     } finally {
       setLoading(false);
     }
