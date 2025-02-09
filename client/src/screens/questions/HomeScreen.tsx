@@ -13,6 +13,7 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import api from '../../api/axios';
 import {Question} from '../../types/question';
 import {RootStackParamList} from '../../navigation/AppNavigator';
+import {debounce} from '../../utils/debounce';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -20,6 +21,7 @@ const HomeScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [inputValue, setInputValue] = useState('');
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(false);
 
@@ -28,12 +30,12 @@ const HomeScreen = () => {
     {id: 'pending', label: 'Pending'},
     {id: 'assigned', label: 'Assigned'},
     {id: 'answered', label: 'Answered'},
-    {id: 'closed', label: 'Closed'},
+    // {id: 'closed', label: 'Closed'},
   ];
 
   useEffect(() => {
     fetchQuestions();
-  }, [filter]);
+  }, [filter, searchQuery]);
 
   const fetchQuestions = async () => {
     try {
@@ -48,6 +50,17 @@ const HomeScreen = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const debouncedSearch = React.useCallback(
+    debounce((query: string) => {
+      setSearchQuery(query);
+    }, 500),
+    [],
+  );
+  const handleSearch = (text: string) => {
+    setInputValue(text);
+    debouncedSearch(text);
   };
 
   const getStatusColor = (
@@ -101,8 +114,8 @@ const HomeScreen = () => {
         <TextInput
           style={styles.searchInput}
           placeholder="Search questions..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
+          value={inputValue}
+          onChangeText={handleSearch}
           placeholderTextColor="#999"
         />
       </View>
