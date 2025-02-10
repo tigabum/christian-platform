@@ -6,6 +6,7 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
+  ListItemButton,
 } from "@mui/material";
 import {
   Dashboard as DashboardIcon,
@@ -41,15 +42,14 @@ const Sidebar = () => {
     >
       <List>
         {menuItems.map((item) => (
-          <ListItem
-            button
+          <ListItemButton
             key={item.text}
             onClick={() => navigate(item.path)}
             selected={location.pathname === item.path}
           >
             <ListItemIcon>{item.icon}</ListItemIcon>
             <ListItemText primary={item.text} />
-          </ListItem>
+          </ListItemButton>
         ))}
       </List>
       <Divider />
