@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth";
 import questionRoutes from "./routes/questions";
 import userRoutes from "./routes/users";
 import responderRoutes from "./routes/responder";
+import adminRoutes from "./routes/admin";
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/questions", questionRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/responder", responderRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hello World");

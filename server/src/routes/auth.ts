@@ -5,6 +5,8 @@ import { Request, Response } from "express";
 import User from "../models/User";
 import { auth } from "../middleware/auth";
 import { AuthRequest } from "../middleware/auth";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
@@ -28,6 +30,48 @@ router.post(
     body("password").exists().withMessage("Password is required"),
   ],
   login
+);
+
+router.post(
+  "/admin/login",
+  [
+    body("email").isEmail().withMessage("Valid email required"),
+    body("password").notEmpty().withMessage("Password required"),
+  ],
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { email, password } = req.body;
+
+      const admin = await User.findOne({ email, role: "admin" });
+      if (!admin) {
+        res.status(401).json({ message: "Invalid credentials" });
+        return;
+      }
+
+      const isMatch = await bcrypt.compare(password, admin.password);
+      if (!isMatch) {
+        res.status(401).json({ message: "Invalid credentials" });
+        return;
+      }
+
+      const token = jwt.sign(
+        { userId: admin._id },
+        process.env.JWT_SECRET || "defaultsecret",
+        { expiresIn: "24h" }
+      );
+
+      res.json({
+        token,
+        admin: {
+          id: admin._id,
+          name: admin.name,
+          email: admin.email,
+        },
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Server error" });
+    }
+  }
 );
 
 router.get(
