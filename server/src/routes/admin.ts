@@ -6,6 +6,8 @@ import User from "../models/User";
 import bcrypt from "bcryptjs";
 import Question from "../models/Question";
 import { Document } from "mongoose";
+import Activity from "../models/Activity";
+// import { adminAuth } from "../middleware/adminAuth";
 
 const router = express.Router();
 
@@ -17,6 +19,10 @@ interface PopulatedQuestion extends Document {
   createdAt: Date;
   answeredAt?: Date;
 }
+
+// Use both middlewares in this order
+router.use(auth); // First verify the token and set req.user
+router.use(adminAuth); // Then verify if the user is an admin
 
 // Create new responder
 router.post(
@@ -31,6 +37,7 @@ router.post(
       .withMessage("Password must be at least 6 characters"),
     body("expertise").notEmpty().withMessage("Expertise is required"),
   ],
+
   async (req: Request, res: Response): Promise<void> => {
     try {
       const { name, email, password, expertise } = req.body;
@@ -220,64 +227,23 @@ router.get(
   [auth, adminAuth],
   async (req: Request, res: Response): Promise<void> => {
     try {
-      // Get counts using Promise.all for better performance
-      const [
-        totalResponders,
-        totalQuestions,
-        answeredQuestions,
-        pendingQuestions,
-      ] = await Promise.all([
-        User.countDocuments({ role: "responder" }),
-        Question.countDocuments(),
-        Question.countDocuments({ status: "answered" }),
-        Question.countDocuments({ status: "pending" }),
-      ]);
+      const stats = {
+        totalResponders: await User.countDocuments({ role: "responder" }),
+        totalQuestions: await Question.countDocuments(),
+        answeredQuestions: await Question.countDocuments({
+          status: "answered",
+        }),
+        responseRate: 0, // Calculate based on answered/total
+      };
 
-      // Calculate response rate
-      const responseRate =
-        totalQuestions > 0
-          ? Math.round((answeredQuestions / totalQuestions) * 100)
-          : 0;
-
-      // Calculate average response time (last 30 days)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      const answeredQuestionsWithTime = await Question.find({
-        status: "answered",
-        answeredAt: { $exists: true },
-        createdAt: { $gte: thirtyDaysAgo },
-      }).select("createdAt answeredAt");
-
-      let avgResponseTime = 0;
-      if (answeredQuestionsWithTime.length > 0) {
-        const totalResponseTime = answeredQuestionsWithTime.reduce((acc, q) => {
-          return acc + (q.answeredAt.getTime() - q.createdAt.getTime());
-        }, 0);
-        avgResponseTime = Math.round(
-          totalResponseTime /
-            answeredQuestionsWithTime.length /
-            (1000 * 60 * 60)
-        ); // in hours
+      if (stats.totalQuestions > 0) {
+        stats.responseRate =
+          (stats.answeredQuestions / stats.totalQuestions) * 100;
       }
 
-      res.json({
-        responders: {
-          total: totalResponders,
-        },
-        questions: {
-          total: totalQuestions,
-          answered: answeredQuestions,
-          pending: pendingQuestions,
-          responseRate: responseRate,
-        },
-        performance: {
-          avgResponseTime: avgResponseTime, // in hours
-        },
-      });
+      res.json(stats);
     } catch (error) {
-      console.error("Error fetching dashboard stats:", error);
-      res.status(500).json({ message: "Server error" });
+      res.status(500).json({ message: "Error fetching stats" });
     }
   }
 );
@@ -288,30 +254,12 @@ router.get(
   [auth, adminAuth],
   async (req: Request, res: Response): Promise<void> => {
     try {
-      // Get recent questions and their answers
-      const recentActivities = (await Question.find()
-        .sort({ updatedAt: -1 })
-        .limit(10)
-        .populate("asker", "name")
-        .populate("responder", "name")
-        .select(
-          "title status createdAt answeredAt responder asker"
-        )) as PopulatedQuestion[];
-
-      const activities = recentActivities.map((q) => ({
-        id: q._id,
-        type: q.status === "answered" ? "answer" : "question",
-        title: q.title,
-        asker: q.asker?.name || "Anonymous",
-        responder: q.responder?.name,
-        timestamp: q.status === "answered" ? q.answeredAt : q.createdAt,
-        status: q.status,
-      }));
-
+      const activities = await Activity.find()
+        .sort({ createdAt: -1 })
+        .limit(10);
       res.json(activities);
     } catch (error) {
-      console.error("Error fetching activities:", error);
-      res.status(500).json({ message: "Server error" });
+      res.status(500).json({ message: "Error fetching activities" });
     }
   }
 );

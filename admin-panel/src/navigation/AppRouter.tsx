@@ -4,7 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import Layout from "../components/layout/Layout";
 import LoginScreen from "../screens/auth/LoginScreen";
 import DashboardScreen from "../screens/dashboard/DashboardScreen";
-import ResponderListScreen from "../screens/responders/ResponderListscreen";
+import ResponderListScreen from "../screens/responders/ResponderListScreen";
 import ResponderCreateScreen from "../screens/responders/ResponderCreateScreen";
 import ResponderDetailScreen from "../screens/responders/ResponderDetailScreen";
 
