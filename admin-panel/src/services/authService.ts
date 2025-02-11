@@ -16,6 +16,8 @@ export const authService = {
       password,
     });
 
+    console.log("Login response:", response.data); // Debug log
+
     if (response.data.token) {
       localStorage.setItem("adminToken", response.data.token);
       localStorage.setItem("adminUser", JSON.stringify(response.data.admin));

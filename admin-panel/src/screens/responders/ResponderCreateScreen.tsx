@@ -20,11 +20,22 @@ interface ResponderFormData {
 }
 
 const EXPERTISE_OPTIONS = [
+  "Technology",
+  "Health",
+  "Education",
+  "Business",
+  "Lifestyle",
   "Biblical Studies",
+  "Old Testament",
+  "New Testament",
   "Theology",
+  "Pastoral",
+  "Counseling",
+  "Church Administration",
   "Church History",
-  "Pastoral Care",
-  "Ethics",
+  "Church Music",
+  "Church Policy",
+  "Church Social Issues",
 ];
 
 const ResponderCreateScreen = () => {

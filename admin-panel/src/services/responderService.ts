@@ -51,7 +51,7 @@ export const responderService = {
   // Create new responder
   createResponder: async (data: CreateResponderData) => {
     const response = await api.post<{ message: string; responder: Responder }>(
-      "/auth/admin/responders",
+      "/admin/responders",
       data
     );
     return response.data;

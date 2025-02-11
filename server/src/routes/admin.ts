@@ -20,8 +20,9 @@ interface PopulatedQuestion extends Document {
   answeredAt?: Date;
 }
 
-// Protected admin routes - all routes here require admin authentication
-router.use(adminAuth);
+// Use both middlewares in this order
+router.use(auth); // First verify the token and set req.user
+router.use(adminAuth); // Then verify if the user is an admin
 
 // Create new responder
 router.post(
