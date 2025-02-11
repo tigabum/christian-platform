@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { responderService } from "../../services/responderService";
 import {
   Box,
   Paper,
@@ -8,177 +10,153 @@ import {
   Grid,
   MenuItem,
   Alert,
-  Switch,
-  FormControlLabel,
 } from "@mui/material";
-import { useNavigate, useParams } from "react-router-dom";
-import api from "../../api/axios";
-
-interface ResponderDetail {
-  id: string;
-  name: string;
-  email: string;
-  expertise: string;
-  status: "active" | "inactive";
-  questionsAnswered: number;
-  lastActive: string;
-}
-
-const EXPERTISE_OPTIONS = [
-  "Biblical Studies",
-  "Theology",
-  "Church History",
-  "Pastoral Care",
-  "Ethics",
-];
 
 const ResponderDetailScreen = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [responder, setResponder] = useState<ResponderDetail | null>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    expertise: "",
+    password: "", // Optional for updates
+  });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>("");
-  const [isEditing, setIsEditing] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
+    const loadResponder = async () => {
+      try {
+        if (!id) return;
+        const responder = await responderService.getResponder(id);
+        setFormData({
+          name: responder.name,
+          email: responder.email,
+          expertise: responder.expertise,
+          password: "", // Empty as we don't receive password
+        });
+      } catch (err: any) {
+        setError(err.response?.data?.message || "Failed to load responder");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadResponder();
   }, [id]);
 
-  const loadResponder = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
     try {
-      const response = await api.get(`/admin/responders/${id}`);
-      setResponder(response.data);
-    } catch (error: any) {
-      setError("Failed to load responder details");
+      if (!id) return;
+
+      // Only send password if it's been changed
+      const updateData = {
+        ...formData,
+        password: formData.password || undefined,
+      };
+
+      await responderService.updateResponder(id, updateData);
+      navigate("/responders");
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to update responder");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleUpdate = async () => {
-    try {
-      await api.put(`/admin/responders/${id}`, responder);
-      setIsEditing(false);
-      loadResponder();
-    } catch (error: any) {
-      setError(error.response?.data?.message || "Failed to update responder");
-    }
-  };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (responder) {
-      setResponder({
-        ...responder,
-        [e.target.name]: e.target.value,
-      });
-    }
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
   };
 
-  const handleStatusChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (responder) {
-      setResponder({
-        ...responder,
-        status: e.target.checked ? "active" : "inactive",
-      });
-    }
-  };
-
-  if (loading) return <div>Loading...</div>;
-  if (!responder) return <div>Responder not found</div>;
+  if (loading) return <Typography>Loading...</Typography>;
 
   return (
     <Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
-        <Typography variant="h4">Responder Details</Typography>
-        <Button variant="contained" onClick={() => setIsEditing(!isEditing)}>
-          {isEditing ? "Cancel Edit" : "Edit Details"}
-        </Button>
-      </Box>
+      <Typography variant="h4" gutterBottom>
+        Edit Responder
+      </Typography>
 
-      <Paper sx={{ p: 3 }}>
+      <Paper sx={{ p: 3, maxWidth: 600 }}>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
         )}
 
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Name"
-              name="name"
-              value={responder.name}
-              onChange={handleChange}
-              disabled={!isEditing}
-            />
-          </Grid>
+        <form onSubmit={handleSubmit}>
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required
+              />
+            </Grid>
 
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Email"
-              name="email"
-              value={responder.email}
-              onChange={handleChange}
-              disabled={!isEditing}
-            />
-          </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
+            </Grid>
 
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              select
-              label="Expertise"
-              name="expertise"
-              value={responder.expertise}
-              onChange={handleChange}
-              disabled={!isEditing}
-            >
-              {EXPERTISE_OPTIONS.map((option) => (
-                <MenuItem key={option} value={option}>
-                  {option}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Expertise"
+                name="expertise"
+                value={formData.expertise}
+                onChange={handleChange}
+                required
+              />
+            </Grid>
 
-          <Grid item xs={12} md={6}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={responder.status === "active"}
-                  onChange={handleStatusChange}
-                  disabled={!isEditing}
-                />
-              }
-              label="Active Status"
-            />
-          </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="New Password"
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+                helperText="Leave empty to keep current password"
+              />
+            </Grid>
 
-          <Grid item xs={12} md={6}>
-            <Typography variant="body2" color="text.secondary">
-              Questions Answered: {responder.questionsAnswered}
-            </Typography>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Typography variant="body2" color="text.secondary">
-              Last Active: {new Date(responder.lastActive).toLocaleString()}
-            </Typography>
-          </Grid>
-
-          {isEditing && (
-            <Grid item xs={12} sx={{ mt: 2 }}>
-              <Button variant="contained" onClick={handleUpdate} sx={{ mr: 2 }}>
-                Save Changes
+            <Grid item xs={12} sx={{ display: "flex", gap: 2 }}>
+              <Button
+                variant="contained"
+                type="submit"
+                size="large"
+                disabled={loading}
+              >
+                Update Responder
               </Button>
-              <Button variant="outlined" onClick={() => setIsEditing(false)}>
+              <Button
+                variant="outlined"
+                onClick={() => navigate("/responders")}
+                size="large"
+              >
                 Cancel
               </Button>
             </Grid>
-          )}
-        </Grid>
+          </Grid>
+        </form>
       </Paper>
     </Box>
   );

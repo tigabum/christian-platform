@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import { Add as AddIcon, Edit as EditIcon } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
-import api from "../../api/axios";
+import { responderService } from "../../services/responderService";
 
 interface Responder {
   id: string;
@@ -30,22 +30,24 @@ interface Responder {
 const ResponderListScreen = () => {
   const [responders, setResponders] = useState<Responder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [expertise, setExpertise] = useState("");
   const navigate = useNavigate();
-
-  useEffect(() => {
-    loadResponders();
-  }, []);
 
   const loadResponders = async () => {
     try {
-      const response = await api.get("/admin/responders");
-      setResponders(response.data);
-    } catch (error) {
-      console.error("Failed to load responders:", error);
+      const data = await responderService.getResponders(search, expertise);
+      setResponders(data.responders);
+    } catch (err) {
+      // Handle error
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadResponders();
+  }, [search, expertise]);
 
   return (
     <Box>

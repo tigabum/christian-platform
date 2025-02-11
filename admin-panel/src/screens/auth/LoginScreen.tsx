@@ -12,35 +12,35 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 
 const LoginScreen = () => {
-  const navigate = useNavigate();
-  const { login } = useAuth();
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
-  const [error, setError] = useState<string>("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
+    setError("");
 
     try {
-      await login(formData.email, formData.password);
-      navigate("/");
-    } catch (error: any) {
-      setError(error.response?.data?.message || "Invalid credentials");
+      await login(email, password);
+      navigate("/dashboard");
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    if (name === "email") {
+      setEmail(value);
+    } else if (name === "password") {
+      setPassword(value);
+    }
   };
 
   return (
@@ -70,7 +70,7 @@ const LoginScreen = () => {
               label="Email"
               name="email"
               type="email"
-              value={formData.email}
+              value={email}
               onChange={handleChange}
               margin="normal"
               required
@@ -81,7 +81,7 @@ const LoginScreen = () => {
               label="Password"
               name="password"
               type="password"
-              value={formData.password}
+              value={password}
               onChange={handleChange}
               margin="normal"
               required

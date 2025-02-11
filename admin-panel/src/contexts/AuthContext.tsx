@@ -1,12 +1,17 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import api from "../api/axios";
-import { Admin } from "../types/admin";
+import { authService } from "../services/authService";
+
+interface Admin {
+  id: string;
+  name: string;
+  email: string;
+}
 
 interface AuthContextType {
   admin: Admin | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,31 +23,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadAdmin();
+    const currentAdmin = authService.getCurrentAdmin();
+    setAdmin(currentAdmin);
+    setLoading(false);
   }, []);
 
-  const loadAdmin = async () => {
+  const login = async (email: string, password: string) => {
     try {
-      const token = localStorage.getItem("admin_token");
-      if (token) {
-        const response = await api.get("/admin/profile");
-        setAdmin(response.data);
-      }
+      const response = await authService.login(email, password);
+      setAdmin(response.admin);
     } catch (error) {
-      localStorage.removeItem("admin_token");
-    } finally {
-      setLoading(false);
+      throw error;
     }
   };
 
-  const login = async (email: string, password: string) => {
-    const response = await api.post("/admin/login", { email, password });
-    localStorage.setItem("admin_token", response.data.token);
-    setAdmin(response.data.admin);
-  };
-
-  const logout = async () => {
-    localStorage.removeItem("admin_token");
+  const logout = () => {
+    authService.logout();
     setAdmin(null);
   };
 
@@ -55,8 +51,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within AuthProvider");
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

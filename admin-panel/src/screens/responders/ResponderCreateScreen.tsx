@@ -10,7 +10,7 @@ import {
   Alert,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import api from "../../api/axios";
+import { responderService } from "../../services/responderService";
 
 interface ResponderFormData {
   name: string;
@@ -28,22 +28,28 @@ const EXPERTISE_OPTIONS = [
 ];
 
 const ResponderCreateScreen = () => {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState<ResponderFormData>({
     name: "",
     email: "",
     expertise: "",
     password: "",
   });
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setError("");
+
     try {
-      await api.post("/admin/responders", formData);
+      await responderService.createResponder(formData);
       navigate("/responders");
-    } catch (error: any) {
-      setError(error.response?.data?.message || "Failed to create responder");
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to create responder");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -124,7 +130,12 @@ const ResponderCreateScreen = () => {
             </Grid>
 
             <Grid item xs={12} sx={{ display: "flex", gap: 2 }}>
-              <Button variant="contained" type="submit" size="large">
+              <Button
+                variant="contained"
+                type="submit"
+                size="large"
+                disabled={loading}
+              >
                 Create Responder
               </Button>
               <Button
