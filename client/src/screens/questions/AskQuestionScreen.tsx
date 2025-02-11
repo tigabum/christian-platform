@@ -8,10 +8,17 @@ import {
   ScrollView,
   Switch,
   ActivityIndicator,
+  Dimensions,
+  Modal,
+  FlatList,
+  SafeAreaView,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import api from '../../api/axios';
 import {User} from '../../types/user.ts';
+
+const {width} = Dimensions.get('window');
 
 const AskQuestionScreen = () => {
   const navigation = useNavigation();
@@ -19,9 +26,11 @@ const AskQuestionScreen = () => {
   const [content, setContent] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [responders, setResponders] = useState<User[]>([]);
-  const [selectedResponderId, setSelectedResponderId] = useState('');
+  const [selectedResponder, setSelectedResponder] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchingResponders, setFetchingResponders] = useState(true);
+  const [showResponderModal, setShowResponderModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchResponders();
@@ -30,7 +39,6 @@ const AskQuestionScreen = () => {
   const fetchResponders = async () => {
     try {
       const response = await api.get('/users/responders');
-      console.log('Received responders:', response.data);
       setResponders(response.data);
     } catch (error) {
       console.error('Error fetching responders:', error);
@@ -39,37 +47,98 @@ const AskQuestionScreen = () => {
     }
   };
 
+  const filteredResponders = responders.filter(responder =>
+    responder.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
   const handleSubmit = async () => {
     if (!title.trim() || !content.trim()) return;
 
     try {
       setLoading(true);
-
-      // First create the question
       const questionResponse = await api.post('/questions', {
         title: title.trim(),
         content: content.trim(),
         isAnonymous,
       });
 
-      // If a responder was selected, assign the question
-      if (selectedResponderId) {
+      if (selectedResponder) {
         await api.patch(`/questions/${questionResponse.data._id}/assign`, {
-          responderId: selectedResponderId,
+          responderId: selectedResponder._id,
         });
       }
 
       navigation.goBack();
     } catch (error) {
-      console.error('Error creating/assigning question:', error);
+      console.error('Error creating question:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  const ResponderModal = () => (
+    <Modal
+      visible={showResponderModal}
+      animationType="slide"
+      presentationStyle="pageSheet">
+      <SafeAreaView style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>Select Responder</Text>
+          <TouchableOpacity onPress={() => setShowResponderModal(false)}>
+            <Icon name="close" size={24} color="#333" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.searchContainer}>
+          <Icon
+            name="search"
+            size={20}
+            color="#666"
+            style={styles.searchIcon}
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search responders..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+
+        <FlatList
+          data={filteredResponders}
+          keyExtractor={item => item._id}
+          renderItem={({item}) => (
+            <TouchableOpacity
+              style={[
+                styles.responderItem,
+                selectedResponder?._id === item._id &&
+                  styles.selectedResponderItem,
+              ]}
+              onPress={() => {
+                setSelectedResponder(item);
+                setShowResponderModal(false);
+              }}>
+              <View style={styles.responderInfo}>
+                <Text style={styles.responderName}>{item.name}</Text>
+                <Text style={styles.responderExpertise}>
+                  {Array.isArray(item.expertise)
+                    ? item.expertise.join(', ')
+                    : item.expertise}
+                </Text>
+              </View>
+              {selectedResponder?._id === item._id && (
+                <Icon name="checkmark-circle" size={24} color="#007AFF" />
+              )}
+            </TouchableOpacity>
+          )}
+        />
+      </SafeAreaView>
+    </Modal>
+  );
+
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.inputContainer}>
+      <View style={styles.card}>
         <Text style={styles.label}>Title</Text>
         <TextInput
           style={styles.titleInput}
@@ -80,7 +149,7 @@ const AskQuestionScreen = () => {
         />
       </View>
 
-      <View style={styles.inputContainer}>
+      <View style={styles.card}>
         <Text style={styles.label}>Description</Text>
         <TextInput
           style={styles.contentInput}
@@ -92,7 +161,7 @@ const AskQuestionScreen = () => {
         />
       </View>
 
-      <View style={styles.optionsContainer}>
+      <View style={styles.card}>
         <View style={styles.switchContainer}>
           <Text style={styles.switchLabel}>Ask Anonymously</Text>
           <Switch
@@ -105,24 +174,20 @@ const AskQuestionScreen = () => {
 
         <View style={styles.responderSection}>
           <Text style={styles.sectionTitle}>Select Responder (Optional)</Text>
-          {fetchingResponders ? (
-            <ActivityIndicator style={styles.loader} color="#007AFF" />
-          ) : (
-            <View style={styles.respondersGrid}>
-              {responders.map(responder => (
-                <TouchableOpacity
-                  key={responder._id}
-                  style={[
-                    styles.responderCard,
-                    selectedResponderId === responder._id &&
-                      styles.selectedResponder,
-                  ]}
-                  onPress={() => setSelectedResponderId(responder._id)}>
-                  <Text style={styles.responderName}>{responder.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
+          <TouchableOpacity
+            style={styles.responderSelector}
+            onPress={() => setShowResponderModal(true)}>
+            {selectedResponder ? (
+              <Text style={styles.selectedResponderText}>
+                {selectedResponder.name}
+              </Text>
+            ) : (
+              <Text style={styles.responderPlaceholder}>
+                Choose a responder...
+              </Text>
+            )}
+            <Icon name="chevron-forward" size={20} color="#666" />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -140,6 +205,8 @@ const AskQuestionScreen = () => {
           <Text style={styles.submitButtonText}>Submit Question</Text>
         )}
       </TouchableOpacity>
+
+      <ResponderModal />
     </ScrollView>
   );
 };
@@ -147,12 +214,19 @@ const AskQuestionScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f5f5f5',
   },
-  inputContainer: {
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    margin: 16,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   label: {
     fontSize: 14,
@@ -166,6 +240,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
     borderRadius: 8,
     color: '#333',
+    borderWidth: 1,
+    borderColor: '#e1e1e1',
   },
   contentInput: {
     fontSize: 16,
@@ -174,9 +250,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     minHeight: 120,
     color: '#333',
-  },
-  optionsContainer: {
-    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e1e1e1',
   },
   switchContainer: {
     flexDirection: 'row',
@@ -189,7 +264,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   responderSection: {
-    marginTop: 20,
+    marginTop: 16,
   },
   sectionTitle: {
     fontSize: 16,
@@ -197,34 +272,23 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 12,
   },
-  loader: {
-    marginVertical: 20,
-  },
-  respondersGrid: {
+  responderSelector: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    paddingVertical: 10,
-  },
-  responderCard: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12,
-    padding: 16,
-    width: '48%', // Two cards per row with gap
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 60,
-  },
-  selectedResponder: {
-    backgroundColor: '#e3efff',
+    padding: 12,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#007AFF',
+    borderColor: '#e1e1e1',
   },
-  responderName: {
+  selectedResponderText: {
     fontSize: 16,
-    fontWeight: '500',
     color: '#333',
-    textAlign: 'center',
+  },
+  responderPlaceholder: {
+    fontSize: 16,
+    color: '#999',
   },
   submitButton: {
     backgroundColor: '#007AFF',
@@ -240,6 +304,63 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e1e1e1',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#f5f5f5',
+    margin: 16,
+    borderRadius: 8,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+  },
+  responderItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  selectedResponderItem: {
+    backgroundColor: '#f0f8ff',
+  },
+  responderInfo: {
+    flex: 1,
+  },
+  responderName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: 4,
+  },
+  responderExpertise: {
+    fontSize: 14,
+    color: '#666',
   },
 });
 

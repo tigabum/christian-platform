@@ -91,7 +91,7 @@ const DashboardScreen = () => {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Response Rate"
-            value={`${stats.responseRate}%`}
+            value={`${stats.responseRate.toFixed(2)}%`}
             icon={<TimelineIcon />}
             color="#9c27b0"
           />
