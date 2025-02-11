@@ -76,6 +76,12 @@ const AskQuestionScreen = () => {
     }
   };
 
+  // Reset search when modal closes
+  const handleCloseModal = () => {
+    setShowResponderModal(false);
+    setSearchQuery(''); // Clear search when modal closes
+  };
+
   const ResponderModal = () => (
     <Modal
       visible={showResponderModal}
@@ -84,7 +90,7 @@ const AskQuestionScreen = () => {
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>Select Responder</Text>
-          <TouchableOpacity onPress={() => setShowResponderModal(false)}>
+          <TouchableOpacity onPress={handleCloseModal}>
             <Icon name="close" size={24} color="#333" />
           </TouchableOpacity>
         </View>
