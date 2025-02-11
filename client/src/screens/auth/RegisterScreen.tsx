@@ -28,7 +28,7 @@ const RegisterScreen = ({navigation}: any) => {
         name,
         email,
         password,
-        role: 'asker',
+        role: 'user',
       });
 
       // After successful registration, navigate to Login
