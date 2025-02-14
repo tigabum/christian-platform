@@ -1,8 +1,9 @@
 export interface User {
-  id: string;
+  _id: string;
   name: string;
   email: string;
-  role: 'asker' | 'responder';
+  role: string;
+  expertise?: string[];
 }
 
 export interface AuthState {
