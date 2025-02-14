@@ -27,10 +27,8 @@ const HomeScreen = () => {
 
   const filterOptions = [
     {id: 'all', label: 'All'},
-    {id: 'pending', label: 'Pending'},
     {id: 'assigned', label: 'Assigned'},
     {id: 'answered', label: 'Answered'},
-    // {id: 'closed', label: 'Closed'},
   ];
 
   useEffect(() => {
@@ -40,10 +38,13 @@ const HomeScreen = () => {
   const fetchQuestions = async () => {
     try {
       setLoading(true);
-      const response = await api.get(
-        `/questions/my?status=${filter}&search=${searchQuery}`,
-      );
-      console.log('Fetched questions:', response.data.length); // Debug log
+      let endpoint =
+        filter === 'all'
+          ? '/questions/public' // Use public endpoint for 'all'
+          : `/questions/my?status=${filter}`; // Use existing for others
+
+      const response = await api.get(endpoint);
+      console.log('Fetched questions:', response.data.length);
       setQuestions(response.data);
     } catch (error) {
       console.error('Error fetching questions:', error);
