@@ -61,25 +61,20 @@ const QuestionDetailScreen = () => {
 
     return (
       <View style={styles.metaContainer}>
-        <Text style={styles.date}>
-          {new Date(question.createdAt).toLocaleDateString()}
-        </Text>
-        {/* Only show asker name if it's the current user's question */}
-        {question.asker?._id === user?._id && (
-          <Text style={styles.askedBy}>Asked by: {question.asker?.name}</Text>
-        )}
-        {question.responder && (
-          <Text style={styles.responder}>
-            Responder: {question.responder.name}
+        <View style={styles.dateContainer}>
+          <Text style={styles.dateLabel}>Asked on</Text>
+          <Text style={styles.date}>
+            {new Date(question.createdAt).toLocaleDateString()}
           </Text>
-        )}
-        <View
-          style={[
-            styles.statusBadge,
-            {backgroundColor: getStatusColor(question.status)},
-          ]}>
-          <Text style={styles.statusText}>{question.status}</Text>
         </View>
+
+        {/* Only show if it's user's own question */}
+        {question.asker?._id === user?._id && (
+          <View style={styles.askerContainer}>
+            <Text style={styles.metaLabel}>Asked by</Text>
+            <Text style={styles.metaValue}>{question.asker?.name}</Text>
+          </View>
+        )}
       </View>
     );
   };
@@ -103,21 +98,40 @@ const QuestionDetailScreen = () => {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.card}>
+        {/* Title Section */}
         <Text style={styles.title}>{question.title}</Text>
+
+        {/* Content Section */}
         <Text style={styles.content}>{question.content}</Text>
 
+        {/* Meta Information */}
         {renderQuestionMeta()}
 
+        {/* Assignment Section */}
         {question.responder && (
-          <View style={styles.responderInfo}>
-            <Text style={styles.responderLabel}>Assigned to:</Text>
-            <Text style={styles.responderName}>{question.responder.name}</Text>
-            {question.assignedAt && (
-              <Text style={styles.assignedDate}>
-                Assigned on:{' '}
-                {new Date(question.assignedAt).toLocaleDateString()}
+          <View style={styles.assignmentCard}>
+            <View style={styles.assignmentHeader}>
+              <Text style={styles.assignmentTitle}>Assignment Details</Text>
+              <View
+                style={[
+                  styles.statusBadge,
+                  {backgroundColor: getStatusColor(question.status)},
+                ]}>
+                <Text style={styles.statusText}>{question.status}</Text>
+              </View>
+            </View>
+            <View style={styles.assignmentDetails}>
+              <Text style={styles.responderLabel}>Assigned to</Text>
+              <Text style={styles.responderName}>
+                {question.responder.name}
               </Text>
-            )}
+              <Text style={styles.assignmentDate}>
+                {question.assignedAt &&
+                  `Assigned on ${new Date(
+                    question.assignedAt,
+                  ).toLocaleDateString()}`}
+              </Text>
+            </View>
           </View>
         )}
 
@@ -159,9 +173,9 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: 'white',
-    margin: 10,
-    padding: 15,
-    borderRadius: 10,
+    margin: 16,
+    padding: 16,
+    borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
@@ -169,62 +183,92 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 8,
   },
   content: {
     fontSize: 16,
     color: '#333',
-    marginBottom: 15,
     lineHeight: 24,
+    marginBottom: 16,
   },
   metaContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 15,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
   },
-  date: {
-    fontSize: 14,
-    color: '#666',
+  dateContainer: {
+    flex: 1,
   },
-  askedBy: {
-    fontSize: 14,
-    color: '#666',
-  },
-  responder: {
-    fontSize: 14,
-    color: '#666',
-  },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-    marginBottom: 15,
-  },
-  statusText: {
-    color: 'white',
-    fontSize: 14,
-    textTransform: 'capitalize',
-  },
-  responderInfo: {
-    backgroundColor: '#f8f9fa',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 10,
-  },
-  responderLabel: {
-    fontSize: 14,
+  dateLabel: {
+    fontSize: 12,
     color: '#666',
     marginBottom: 4,
   },
-  responderName: {
-    fontSize: 16,
+  date: {
+    fontSize: 14,
     color: '#333',
+  },
+  askerContainer: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  metaLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  metaValue: {
+    fontSize: 14,
+    color: '#333',
+  },
+  assignmentCard: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e1e1e1',
+  },
+  assignmentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  assignmentTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+  },
+  statusText: {
+    color: 'white',
+    fontSize: 12,
     fontWeight: '500',
   },
-  assignedDate: {
+  assignmentDetails: {
+    gap: 4,
+  },
+  responderLabel: {
+    fontSize: 12,
+    color: '#666',
+  },
+  responderName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  assignmentDate: {
     fontSize: 12,
     color: '#666',
     marginTop: 4,
