@@ -16,6 +16,8 @@ import {useAuth} from '../../contexts/AuthContext';
 import api from '../../api/axios';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import {formatDate} from '../../utils/dateFormatter';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -25,9 +27,9 @@ type Question = {
   content: string;
   status: 'pending' | 'inProgress' | 'answered';
   createdAt: string;
+  isAnonymous: boolean;
   asker: {
     name: string;
-    isAnonymous: boolean;
   };
 };
 
@@ -67,77 +69,38 @@ const DashboardScreen = () => {
     }
   };
 
-  const renderQuestion = ({item}: {item: Question}) => (
+  const renderQuestionCard = ({item}: {item: Question}) => (
     <TouchableOpacity
       style={styles.questionCard}
       onPress={() => navigation.navigate('QuestionDetail', {id: item._id})}>
-      <View style={styles.questionHeader}>
-        <View style={styles.titleContainer}>
-          <MaterialIcons
-            name="help-outline"
-            size={24}
-            color="#007AFF"
-            style={styles.icon}
-          />
-          <Text style={styles.questionTitle}>{item.title}</Text>
+      <View style={styles.cardHeader}>
+        <View style={styles.iconContainer}>
+          <Ionicons name="help-circle" size={24} color="#007AFF" />
         </View>
-        <View style={[styles.statusBadge, getStatusStyle(item.status)]}>
-          <Text style={styles.statusText}>
-            {item.status === 'inProgress' ? 'In Progress' : item.status}
-          </Text>
+        <Text style={styles.questionTitle}>{item.title}</Text>
+        <View style={styles.statusBadge}>
+          <Text style={styles.statusText}>{item.status}</Text>
         </View>
       </View>
-
       <Text style={styles.questionContent} numberOfLines={2}>
         {item.content}
       </Text>
-
-      <View style={styles.questionMeta}>
-        <View style={styles.askerInfo}>
-          <MaterialIcons name="person-outline" size={16} color="#666" />
-          <Text style={styles.askedBy}>
-            {item.asker?.isAnonymous
-              ? 'Anonymous'
-              : item.asker?.name || 'Unknown'}
-          </Text>
-        </View>
-        <View style={styles.dateInfo}>
-          <MaterialIcons name="event" size={16} color="#666" />
-          <Text style={styles.date}>
-            {new Date(item.createdAt).toLocaleDateString()}
-          </Text>
-        </View>
+      <View style={styles.cardFooter}>
+        <Text style={styles.askerName}>
+          {item.isAnonymous ? 'Anonymous' : item.asker?.name || 'Unknown'}
+        </Text>
+        <Text style={styles.date}>{formatDate(item.createdAt)}</Text>
       </View>
     </TouchableOpacity>
   );
-
-  const getStatusStyle = (status: Question['status']) => {
-    switch (status) {
-      case 'pending':
-        return styles.pendingBadge;
-      case 'inProgress':
-        return styles.inProgressBadge;
-      case 'answered':
-        return styles.answeredBadge;
-      default:
-        return styles.pendingBadge;
-    }
-  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Questions Dashboard</Text>
-          <TouchableOpacity
-            onPress={() => {
-              /* Add profile navigation */
-            }}>
-            <MaterialIcons
-              name="person-circle-outline"
-              size={28}
-              color="#007AFF"
-            />
+          <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+            <Ionicons name="person-circle" size={28} color="#007AFF" />
           </TouchableOpacity>
         </View>
 
@@ -169,7 +132,7 @@ const DashboardScreen = () => {
         ) : (
           <FlatList
             data={questions}
-            renderItem={renderQuestion}
+            renderItem={renderQuestionCard}
             keyExtractor={item => item._id}
             contentContainerStyle={styles.list}
             refreshControl={
@@ -251,80 +214,51 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
   },
-  questionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  titleContainer: {
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    marginBottom: 8,
+  },
+  iconContainer: {
     marginRight: 12,
   },
-  icon: {
-    marginRight: 8,
-  },
   questionTitle: {
+    flex: 1,
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
-    flex: 1,
+    color: '#000',
   },
   statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  pendingBadge: {
     backgroundColor: '#FFF3E0',
-  },
-  inProgressBadge: {
-    backgroundColor: '#E3F2FD',
-  },
-  answeredBadge: {
-    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   statusText: {
+    color: '#F57C00',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   questionContent: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#666',
-    lineHeight: 20,
     marginBottom: 12,
   },
-  questionMeta: {
+  cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
   },
-  askerInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  dateInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  askedBy: {
-    fontSize: 12,
+  askerName: {
+    fontSize: 14,
     color: '#666',
-    marginLeft: 4,
   },
   date: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#666',
-    marginLeft: 4,
   },
   loader: {
     flex: 1,
