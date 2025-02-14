@@ -158,10 +158,23 @@ const DashboardScreen = () => {
   );
 };
 
+const getStatusColor = (status: Question['status']) => {
+  switch (status) {
+    case 'pending':
+      return {bg: '#FFF3E0', text: '#F57C00'};
+    case 'inProgress': // Changed from 'assigned' to match Question type
+      return {bg: '#E3F2FD', text: '#1976D2'};
+    case 'answered':
+      return {bg: '#E8F5E9', text: '#388E3C'};
+    default:
+      return {bg: '#FFF3E0', text: '#F57C00'};
+  }
+};
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
   },
   container: {
     flex: 1,

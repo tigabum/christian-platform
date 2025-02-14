@@ -15,6 +15,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import {RootStackParamList} from '../../navigation/AppNavigator';
 import {useAuth} from '../../contexts/AuthContext';
 import api from '../../api/axios';
+import {formatDate} from '../../utils/dateFormatter';
 
 type QuestionDetailRouteProp = RouteProp<RootStackParamList, 'QuestionDetail'>;
 
@@ -149,7 +150,7 @@ const QuestionDetailScreen = () => {
                 <View style={styles.metaItem}>
                   <Ionicons name="calendar-outline" size={16} color="#666" />
                   <Text style={styles.metaText}>
-                    {new Date(question?.createdAt || '').toLocaleDateString()}
+                    {question?.createdAt ? formatDate(question.createdAt) : ''}
                   </Text>
                 </View>
               </View>
