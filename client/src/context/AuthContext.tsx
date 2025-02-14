@@ -5,38 +5,51 @@ import {User, AuthState} from '../types/auth';
 
 export const AuthContext = createContext<{
   isSignedIn: boolean;
+  user: User | null;
   signIn: (token: string) => Promise<void>;
   signOut: () => Promise<void>;
 }>({
   isSignedIn: false,
+  user: null,
   signIn: async () => {},
   signOut: async () => {},
 });
 
 export const AuthProvider = ({children}: {children: React.ReactNode}) => {
   const [isSignedIn, setIsSignedIn] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     checkToken();
   }, []);
 
   const checkToken = async () => {
-    const token = await AsyncStorage.getItem('token');
-    setIsSignedIn(!!token);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (token) {
+        const response = await api.get('/auth/me');
+        setUser(response.data);
+        setIsSignedIn(true);
+      }
+    } catch (error) {
+      console.error('Token validation failed:', error);
+      await signOut();
+    }
   };
 
   const signIn = async (token: string) => {
     await AsyncStorage.setItem('token', token);
-    setIsSignedIn(true);
+    await checkToken();
   };
 
   const signOut = async () => {
     await AsyncStorage.removeItem('token');
+    setUser(null);
     setIsSignedIn(false);
   };
 
   return (
-    <AuthContext.Provider value={{isSignedIn, signIn, signOut}}>
+    <AuthContext.Provider value={{isSignedIn, user, signIn, signOut}}>
       {children}
     </AuthContext.Provider>
   );

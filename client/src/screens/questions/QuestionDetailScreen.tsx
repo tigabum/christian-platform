@@ -12,6 +12,7 @@ import {useRoute, useNavigation, RouteProp} from '@react-navigation/native';
 import {RootStackParamList} from '../../navigation/AppNavigator';
 import api from '../../api/axios';
 import {Question} from '../../types/question';
+import {useAuth} from '../../context/AuthContext';
 
 type QuestionDetailRouteProp = RouteProp<RootStackParamList, 'QuestionDetail'>;
 
@@ -20,6 +21,7 @@ const QuestionDetailScreen = () => {
   const navigation = useNavigation();
   const [question, setQuestion] = useState<Question | null>(null);
   const [loading, setLoading] = useState(true);
+  const {user} = useAuth();
 
   useEffect(() => {
     fetchQuestionDetails();
@@ -54,6 +56,34 @@ const QuestionDetailScreen = () => {
     }
   };
 
+  const renderQuestionMeta = () => {
+    if (!question) return null;
+
+    return (
+      <View style={styles.metaContainer}>
+        <Text style={styles.date}>
+          {new Date(question.createdAt).toLocaleDateString()}
+        </Text>
+        {/* Only show asker name if it's the current user's question */}
+        {question.asker?._id === user?._id && (
+          <Text style={styles.askedBy}>Asked by: {question.asker?.name}</Text>
+        )}
+        {question.responder && (
+          <Text style={styles.responder}>
+            Responder: {question.responder.name}
+          </Text>
+        )}
+        <View
+          style={[
+            styles.statusBadge,
+            {backgroundColor: getStatusColor(question.status)},
+          ]}>
+          <Text style={styles.statusText}>{question.status}</Text>
+        </View>
+      </View>
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -76,25 +106,7 @@ const QuestionDetailScreen = () => {
         <Text style={styles.title}>{question.title}</Text>
         <Text style={styles.content}>{question.content}</Text>
 
-        <View style={styles.metaContainer}>
-          <Text style={styles.askerText}>
-            Asked by:{' '}
-            {question.isAnonymous
-              ? 'Anonymous'
-              : question.asker?.name || 'Unknown'}
-          </Text>
-          <Text style={styles.date}>
-            {new Date(question.createdAt).toLocaleDateString()}
-          </Text>
-        </View>
-
-        <View
-          style={[
-            styles.statusBadge,
-            {backgroundColor: getStatusColor(question.status)},
-          ]}>
-          <Text style={styles.statusText}>{question.status}</Text>
-        </View>
+        {renderQuestionMeta()}
 
         {question.responder && (
           <View style={styles.responderInfo}>
@@ -172,11 +184,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 15,
   },
-  askerText: {
+  date: {
     fontSize: 14,
     color: '#666',
   },
-  date: {
+  askedBy: {
+    fontSize: 14,
+    color: '#666',
+  },
+  responder: {
     fontSize: 14,
     color: '#666',
   },
