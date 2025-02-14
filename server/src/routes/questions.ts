@@ -34,9 +34,17 @@ router.post(
 );
 
 // Get all public questions
-router.get("/public", async (_req, res: Response): Promise<void> => {
+router.get("/public", async (req: Request, res: Response): Promise<void> => {
   try {
-    const questions = await Question.find({ isPublic: true })
+    const { search } = req.query;
+    let query: any = { isPublic: true };
+
+    if (search && typeof search === "string" && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), "i");
+      query.$or = [{ title: searchRegex }, { content: searchRegex }];
+    }
+
+    const questions = await Question.find(query)
       .populate("asker", "name")
       .sort({ createdAt: -1 });
     res.json(questions);
