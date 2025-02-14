@@ -13,6 +13,7 @@ import {RootStackParamList} from '../../navigation/AppNavigator';
 import api from '../../api/axios';
 import {Question} from '../../types/question';
 import {useAuth} from '../../context/AuthContext';
+import {formatDate} from '../../utils/dateFormatter';
 
 type QuestionDetailRouteProp = RouteProp<RootStackParamList, 'QuestionDetail'>;
 
@@ -64,7 +65,7 @@ const QuestionDetailScreen = () => {
         <View style={styles.dateContainer}>
           <Text style={styles.dateLabel}>Asked on</Text>
           <Text style={styles.date}>
-            {new Date(question.createdAt).toLocaleDateString()}
+            {question?.createdAt && formatDate(question.createdAt)}
           </Text>
         </View>
 
@@ -126,10 +127,8 @@ const QuestionDetailScreen = () => {
                 {question.responder.name}
               </Text>
               <Text style={styles.assignmentDate}>
-                {question.assignedAt &&
-                  `Assigned on ${new Date(
-                    question.assignedAt,
-                  ).toLocaleDateString()}`}
+                {question?.assignedAt &&
+                  `Assigned on ${formatDate(question.assignedAt)}`}
               </Text>
             </View>
           </View>
@@ -142,7 +141,7 @@ const QuestionDetailScreen = () => {
             <Text style={styles.answerDate}>
               Answered on:{' '}
               {question.answeredAt
-                ? new Date(question.answeredAt).toLocaleDateString()
+                ? formatDate(question.answeredAt)
                 : 'Not answered yet'}
             </Text>
           </View>

@@ -7,6 +7,7 @@ import {
   StyleSheet,
   TextInput,
   ScrollView,
+  RefreshControl,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -14,6 +15,8 @@ import api from '../../api/axios';
 import {Question} from '../../types/question';
 import {RootStackParamList} from '../../navigation/AppNavigator';
 import {debounce} from '../../utils/debounce';
+import Icon from 'react-native-vector-icons/Ionicons';
+import {formatDate} from '../../utils/dateFormatter';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -87,88 +90,80 @@ const HomeScreen = () => {
     }
   };
 
-  const renderQuestion = ({item}: {item: Question}) => (
-    <TouchableOpacity
-      style={styles.questionCard}
-      onPress={() => navigation.navigate('QuestionDetail', {id: item._id})}>
-      <Text style={styles.questionTitle}>{item.title}</Text>
-      <Text style={styles.questionContent} numberOfLines={2}>
-        {item.content}
-      </Text>
-      <View style={styles.questionMeta}>
-        <Text style={styles.questionDate}>
-          {new Date(item.createdAt).toLocaleDateString()}
-        </Text>
-        {item.responder && (
-          <Text style={styles.assignedTo}>
-            Assigned to: {item.responder.name}
-          </Text>
-        )}
-        <View
-          style={[
-            styles.statusBadge,
-            {backgroundColor: getStatusColor(item.status)},
-          ]}>
-          <Text style={styles.statusText}>{item.status}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-
   return (
     <View style={styles.container}>
+      {/* Search Bar */}
       <View style={styles.searchContainer}>
+        <Icon name="search-outline" size={20} color="#999" />
         <TextInput
           style={styles.searchInput}
           placeholder="Search questions..."
-          value={inputValue}
-          onChangeText={handleSearch}
           placeholderTextColor="#999"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
         />
       </View>
 
+      {/* Filter Tabs */}
       <View style={styles.filterContainer}>
-        <View style={styles.filterRow}>
-          {filterOptions.map(option => (
-            <TouchableOpacity
-              key={option.id}
+        {filterOptions.map(option => (
+          <TouchableOpacity
+            key={option.id}
+            style={[
+              styles.filterTab,
+              filter === option.id && styles.filterTabActive,
+            ]}
+            onPress={() => setFilter(option.id)}>
+            <Text
               style={[
-                styles.filterButton,
-                filter === option.id && styles.filterButtonActive,
-              ]}
-              onPress={() => setFilter(option.id)}>
-              <Text
-                style={[
-                  styles.filterText,
-                  filter === option.id && styles.filterTextActive,
-                ]}>
-                {option.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+                styles.filterText,
+                filter === option.id && styles.filterTextActive,
+              ]}>
+              {option.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
+      {/* Questions List */}
       <FlatList
         data={questions}
-        renderItem={renderQuestion}
-        keyExtractor={item => item._id}
-        refreshing={loading}
-        onRefresh={fetchQuestions}
-        contentContainerStyle={styles.listContainer}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              {loading ? 'Loading...' : 'No questions found'}
+        renderItem={({item}) => (
+          <TouchableOpacity
+            style={styles.questionCard}
+            onPress={() =>
+              navigation.navigate('QuestionDetail', {id: item._id})
+            }>
+            <Text style={styles.questionTitle}>{item.title}</Text>
+            <Text style={styles.questionContent} numberOfLines={2}>
+              {item.content}
             </Text>
-          </View>
+            <View style={styles.cardFooter}>
+              <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
+              <Text
+                style={[
+                  styles.statusBadge,
+                  {
+                    backgroundColor:
+                      item.status === 'assigned' ? '#4CAF50' : '#007AFF',
+                  },
+                ]}>
+                {item.status}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={fetchQuestions} />
         }
+        contentContainerStyle={styles.listContainer}
       />
 
+      {/* Add Question FAB */}
       <TouchableOpacity
         style={styles.fab}
         onPress={() => navigation.navigate('AskQuestion')}>
-        <Text style={styles.fabText}>+</Text>
+        <Text style={styles.fabIcon}>+</Text>
       </TouchableOpacity>
     </View>
   );
@@ -180,48 +175,40 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   searchContainer: {
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    margin: 16,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    height: 40,
   },
   searchInput: {
-    backgroundColor: '#f5f5f5',
-    padding: 12,
-    borderRadius: 8,
+    flex: 1,
+    marginLeft: 8,
     fontSize: 16,
     color: '#333',
   },
   filterContainer: {
-    backgroundColor: '#fff',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  filterRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
+    marginBottom: 8,
   },
-  filterButton: {
+  filterTab: {
+    paddingVertical: 8,
     paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#f0f0f0',
+    marginRight: 8,
   },
-  filterButtonActive: {
+  filterTabActive: {
     backgroundColor: '#007AFF',
+    borderRadius: 20,
   },
   filterText: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#666',
   },
   filterTextActive: {
     color: '#fff',
-    fontWeight: '500',
   },
   listContainer: {
     padding: 16,
@@ -230,12 +217,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
   },
   questionTitle: {
     fontSize: 18,
@@ -247,61 +231,41 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     marginBottom: 12,
-    lineHeight: 22,
   },
-  questionMeta: {
+  cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  questionDate: {
+  dateText: {
     fontSize: 14,
-    color: '#999',
-  },
-  assignedTo: {
-    fontSize: 12,
     color: '#666',
-    marginTop: 4,
+    fontWeight: '400',
   },
   statusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-  },
-  statusText: {
+    overflow: 'hidden',
     color: '#fff',
     fontSize: 14,
-    fontWeight: '500',
     textTransform: 'capitalize',
-  },
-  emptyContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: '#666',
-    fontSize: 16,
   },
   fab: {
     position: 'absolute',
-    right: 20,
-    bottom: 20,
+    right: 16,
+    bottom: 16,
     width: 56,
     height: 56,
     borderRadius: 28,
     backgroundColor: '#007AFF',
-    justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    justifyContent: 'center',
   },
-  fabText: {
+  fabIcon: {
     fontSize: 24,
     color: '#fff',
-    fontWeight: '600',
+    fontWeight: '400',
   },
 });
 
