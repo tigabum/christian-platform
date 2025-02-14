@@ -40,8 +40,14 @@ const HomeScreen = () => {
       setLoading(true);
       let endpoint =
         filter === 'all'
-          ? '/questions/public' // Use public endpoint for 'all'
-          : `/questions/my?status=${filter}`; // Use existing for others
+          ? '/questions/public'
+          : `/questions/my?status=${filter}`;
+
+      if (searchQuery) {
+        endpoint += `${
+          endpoint.includes('?') ? '&' : '?'
+        }search=${searchQuery}`;
+      }
 
       const response = await api.get(endpoint);
       console.log('Fetched questions:', response.data.length);
