@@ -12,6 +12,7 @@ import ProfileScreen from '../screens/profile/ProfileScreen';
 export type RootStackParamList = {
   Login: undefined;
   MainTabs: undefined;
+  Profile: undefined;
   QuestionDetail: {id: string};
 };
 
